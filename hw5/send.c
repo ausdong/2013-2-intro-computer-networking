@@ -38,7 +38,7 @@ int reliable_sendto(int seqno, int sock, void *data, int len, int flags, struct 
 	int success = 0;
 	//wait for ack
 	while(!success){
-		if(select(FD_SETSIZE, &read_fds, NULL, NULL, &timeout) == 0){
+		if(select(32, &read_fds, NULL, NULL, &timeout) == 0){
 			//timeout! send message again
 			sendto(sock, &msg, sizeof(msg), 0 /* flags */, dest_addr, dest_len);
 			printf("timeout. sent (%s) with seq=%u\n", msg.rdata, msg.rseqno);
