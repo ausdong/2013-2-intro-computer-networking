@@ -33,7 +33,7 @@ int reliable_recvfrom(int seqno, int sock, void *data, int len, int flags, struc
 	reliableMsg msg;
 	char ACK[MAXSIZE];
 	int success = 0;
-	fd_set write_fds;
+	int read_fds;
 	struct timeval timeout;
 	//wait for first message
 	printf("waiting for 1st msg\n");
@@ -44,20 +44,20 @@ int reliable_recvfrom(int seqno, int sock, void *data, int len, int flags, struc
 		data = msg.rdata;
 		printf("received seq %u 1st attempt: %s\n", msg.rseqno, data);
 	}
-	else {	//prepare write_fds and timeout value for select()
-	FD_ZERO(&write_fds);
-	FD_SET(sock, &write_fds);
-	timeout.tv_sec = 5;
-	timeout.tv_usec = 0;	
+	else {	//prepare read_fds and timeout value for select()
+	read_fds = 0;
+	read_fds |= (1<<sock);
+	timeout.tv_sec = 0;
+	timeout.tv_usec = 1000;	
 	}
 	while(!success){
-		if(select(FD_SETSIZE, NULL, &write_fds, NULL, &timeout) == 0){
+		if(select(32, (fd_set *)&read_fds, NULL, NULL, &timeout) == 0){
 			//timeout! send ACK seqno-1
 		  memcpy(ACK, (char*)&seqno, sizeof(int));
 		  sendto(sock, ACK, strlen(ACK), 0 /* flags */, src_addr, src_addr_len);
 			printf("timeout. sent old ACK %u\n", ACK);
-			timeout.tv_sec = 5;
-			timeout.tv_usec = 0;
+			/*timeout.tv_sec = 0;
+			timeout.tv_usec = 1000;*/
 		}
 		else {
 			//receive message, check seqno
@@ -71,16 +71,16 @@ int reliable_recvfrom(int seqno, int sock, void *data, int len, int flags, struc
 			}
 			else {
 				//wrong ACK, do nothing with msg, send ACK seqno-1, prepare to receive again
-				FD_ZERO(&write_fds);
-				FD_SET(sock, &write_fds);
-				timeout.tv_sec = 5;
-				timeout.tv_usec = 0;
+				/*read_fds = 0;
+				read_fds |= (1 << sock);
+				timeout.tv_sec = 0;
+				timeout.tv_usec = 1000;*/
 			}
 		}
 	}
 	//send ack
 	memcpy(ACK, (char*)&seqno, sizeof(int));
-	sendto(sock, ACK, strlen(ACK), 0 /* flags */, src_addr, &src_addr_len); 
+	sendto(sock, ACK, strlen(ACK), 0 /* flags */, src_addr, src_addr_len); 
 	printf("sent current ACK %u\n", ACK);
 	return strlen(msg.rdata);
 }

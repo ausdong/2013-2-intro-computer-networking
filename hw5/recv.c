@@ -51,7 +51,7 @@ int reliable_recvfrom(int seqno, int sock, void *data, int len, int flags, struc
 	timeout.tv_usec = 1000;	
 	}
 	while(!success){
-		if(select(32, &read_fds, NULL, NULL, &timeout) == 0){
+		if(select(32, (fd_set *)&read_fds, NULL, NULL, &timeout) == 0){
 			//timeout! send ACK seqno-1
 		  memcpy(ACK, (char*)&seqno, sizeof(int));
 		  sendto(sock, ACK, strlen(ACK), 0 /* flags */, src_addr, src_addr_len);
