@@ -25,15 +25,14 @@ int reliable_sendto(int seqno, int sock, void *data, int len, int flags, struct 
 	reliableMsg msg;
 	char ACK[100];
 	msg.rseqno = seqno;
-	strcpy(msg.rdata, data);
+	strcpy(msg.rdata, &data);
 	//send message
 	sendto(sock, &msg, sizeof(msg), 0 /* flags */, dest_addr, dest_len);
 	printf("sent (%s) with seq=%u\n", msg.rdata, msg.rseqno);
 	//prepare read_fds and timeout value for select()
-	fd_set read_fds;
+	int read_fds = 0;
 	struct timeval timeout;
-	FD_ZERO(&read_fds);
-	FD_SET(sock, &read_fds);
+	read_fds |= (1 << sock);
 	timeout.tv_sec = 5;
 	timeout.tv_usec = 0;
 	int success = 0;
@@ -43,8 +42,8 @@ int reliable_sendto(int seqno, int sock, void *data, int len, int flags, struct 
 			//timeout! send message again
 			sendto(sock, &msg, sizeof(msg), 0 /* flags */, dest_addr, dest_len);
 			printf("timeout. sent (%s) with seq=%u\n", msg.rdata, msg.rseqno);
-			timeout.tv_sec = 5;
-			timeout.tv_usec = 0;
+			/*timeout.tv_sec = 5;
+			timeout.tv_usec = 0;*/
 		}
 		else {
 			//receive message
@@ -57,10 +56,10 @@ int reliable_sendto(int seqno, int sock, void *data, int len, int flags, struct 
 			}
 			else {
 				//wrong ACK, prepare to receive again
-				FD_ZERO(&read_fds);
+				/*FD_ZERO(&read_fds);
 				FD_SET(sock, &read_fds);
 				timeout.tv_sec = 5;
-				timeout.tv_usec = 0;
+				timeout.tv_usec = 0;*/
 			}
 		}
 	}
