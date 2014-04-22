@@ -33,8 +33,8 @@ int reliable_sendto(int seqno, int sock, void *data, int len, int flags, struct 
 	int read_fds = 0;
 	struct timeval timeout;
 	read_fds |= (1 << sock);
-	timeout.tv_sec = 5;
-	timeout.tv_usec = 0;
+	timeout.tv_sec = 0;
+	timeout.tv_usec = 1000;
 	int success = 0;
 	//wait for ack
 	while(!success){
@@ -42,8 +42,8 @@ int reliable_sendto(int seqno, int sock, void *data, int len, int flags, struct 
 			//timeout! send message again
 			sendto(sock, &msg, sizeof(msg), 0 /* flags */, dest_addr, dest_len);
 			printf("timeout. sent (%s) with seq=%u\n", msg.rdata, msg.rseqno);
-			/*timeout.tv_sec = 5;
-			timeout.tv_usec = 0;*/
+			/*timeout.tv_sec = 0;
+			timeout.tv_usec = 1000;*/
 		}
 		else {
 			//receive message
@@ -56,10 +56,10 @@ int reliable_sendto(int seqno, int sock, void *data, int len, int flags, struct 
 			}
 			else {
 				//wrong ACK, prepare to receive again
-				/*FD_ZERO(&read_fds);
-				FD_SET(sock, &read_fds);
-				timeout.tv_sec = 5;
-				timeout.tv_usec = 0;*/
+				/*read_fds = 0;
+				read_fds |= (1 << sock);
+				timeout.tv_sec = 0;
+				timeout.tv_usec = 1000;*/
 			}
 		}
 	}

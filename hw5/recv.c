@@ -47,8 +47,8 @@ int reliable_recvfrom(int seqno, int sock, void *data, int len, int flags, struc
 	else {	//prepare read_fds and timeout value for select()
 	read_fds = 0;
 	read_fds |= (1<<sock);
-	timeout.tv_sec = 5;
-	timeout.tv_usec = 0;	
+	timeout.tv_sec = 0;
+	timeout.tv_usec = 1000;	
 	}
 	while(!success){
 		if(select(32, &read_fds, NULL, NULL, &timeout) == 0){
@@ -56,8 +56,8 @@ int reliable_recvfrom(int seqno, int sock, void *data, int len, int flags, struc
 		  memcpy(ACK, (char*)&seqno, sizeof(int));
 		  sendto(sock, ACK, strlen(ACK), 0 /* flags */, src_addr, src_addr_len);
 			printf("timeout. sent old ACK %u\n", ACK);
-			/*timeout.tv_sec = 5;
-			timeout.tv_usec = 0;*/
+			/*timeout.tv_sec = 0;
+			timeout.tv_usec = 1000;*/
 		}
 		else {
 			//receive message, check seqno
@@ -71,10 +71,10 @@ int reliable_recvfrom(int seqno, int sock, void *data, int len, int flags, struc
 			}
 			else {
 				//wrong ACK, do nothing with msg, send ACK seqno-1, prepare to receive again
-				/*FD_ZERO(&read_fds);
-				FD_SET(sock, &read_fds);
-				timeout.tv_sec = 5;
-				timeout.tv_usec = 0;*/
+				/*read_fds = 0;
+				read_fds |= (1 << sock);
+				timeout.tv_sec = 0;
+				timeout.tv_usec = 1000;*/
 			}
 		}
 	}
