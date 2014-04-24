@@ -42,8 +42,8 @@ int reliable_sendto(int seqno, int sock, void *data, int len, int flags, struct 
 			//timeout! send message again
 			sendto(sock, &msg, sizeof(msg), 0 /* flags */, dest_addr, dest_len);
 			printf("timeout. sent (%s) with seq=%u\n", msg.rdata, msg.rseqno);
-			/*timeout.tv_sec = 0;
-			timeout.tv_usec = 1000;*/
+			timeout.tv_sec = 1;
+			timeout.tv_usec = 0;
 		}
 		else {
 			//receive message

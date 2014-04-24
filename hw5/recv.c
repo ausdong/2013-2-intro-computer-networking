@@ -31,17 +31,17 @@ typedef struct packet {
 int reliable_recvfrom(int seqno, int sock, void *data, int len, int flags, struct sockaddr *src_addr, int src_addr_len)
 {
 	packet msg;
-	packet ACK;
+	int ACK;
 	int success = 0;
 	int read_fds;
 	struct timeval timeout;
 	//wait for first message
-	printf("waiting for 1st msg\n");
+	printf("waiting for 1st msg of seq %u\n", seqno);
 	recvfrom(sock, &msg, sizeof(msg), 0 /* flags */, src_addr, &src_addr_len);
-	printf("received 1st message: %s\n", msg.rdata);
+	printf("received 1st message of seq %u: %s\n", seqno, msg.rdata);
 	if(msg.rseqno == seqno){ // correct message, copy data
 		success = 1;
-		data = msg.rdata;
+		strcpy(data, msg.rdata);
 		printf("received seq %u 1st attempt: %s\n", msg.rseqno, data);
 	}
 	else {	//prepare read_fds and timeout value for select()
@@ -53,9 +53,9 @@ int reliable_recvfrom(int seqno, int sock, void *data, int len, int flags, struc
 	while(!success){
 		if(select(32, (fd_set *)&read_fds, NULL, NULL, &timeout) == 0){
 			//timeout! send ACK seqno-1
-		  ACK.rseqno = seqno-1;
+		  ACK = seqno-1;
 		  sendto(sock, &ACK, sizeof(ACK), 0 /* flags */, src_addr, src_addr_len);
-			printf("timeout. sent old ACK %u\n", ACK.rseqno);
+			printf("timeout. sent old ACK %u\n", ACK);
 			read_fds = 0;
 			read_fds |= (1<<sock);
 			timeout.tv_sec = 1;
@@ -68,7 +68,7 @@ int reliable_recvfrom(int seqno, int sock, void *data, int len, int flags, struc
 			if(msg.rseqno == seqno){
 				//seq number matches, copy data and break out of loop
 				success = 1;
-				data = msg.rdata;
+				strcpy(data, msg.rdata);
 				break;
 			}
 			else {
@@ -81,9 +81,9 @@ int reliable_recvfrom(int seqno, int sock, void *data, int len, int flags, struc
 		}
 	}
 	//send ack
-	ACK.rseqno = seqno;
+	ACK = seqno;
 	sendto(sock, &ACK, sizeof(ACK), 0 /* flags */, src_addr, src_addr_len); 
-	printf("sent current ACK %u\n", ACK.rseqno);
+	printf("sent current ACK %u\n", ACK);
 	return strlen(msg.rdata);
 }
 

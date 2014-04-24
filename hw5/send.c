@@ -23,7 +23,7 @@ int reliable_sendto(int seqno, int sock, void *data, int len, int flags, struct 
 {
 	//copy seqno and message into new message struct
 	packet msg;
-	packet ACK;
+	int ACK;
 	msg.rseqno = seqno;
 	strcpy(msg.rdata, data);
 	//send message
@@ -48,8 +48,8 @@ int reliable_sendto(int seqno, int sock, void *data, int len, int flags, struct 
 		else {
 			//receive message
 			recvfrom(sock, &ACK, 100, 0 /* flags */, dest_addr, &dest_len);
-			printf("received ACK=%u\n", ACK.rseqno);
-			if(ACK.rseqno == seqno){
+			printf("received ACK=%u\n", ACK);
+			if(ACK == seqno){
 				//ACK number matches, break out of loop
 				success = 1;
 				break;
