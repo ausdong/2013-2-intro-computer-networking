@@ -23,22 +23,22 @@ void paddr(unsigned char *a)
    printf("%d.%d.%d.%d", a[0], a[1], a[2], a[3]);
 }
 
-typedef struct reliableMsg {
+typedef struct packet {
 	int rseqno;
 	char rdata[100];
-} reliableMsg;
+} packet;
 
 int reliable_recvfrom(int seqno, int sock, void *data, int len, int flags, struct sockaddr *src_addr, int src_addr_len)
 {
-	reliableMsg msg;
-	char ACK[MAXSIZE];
+	packet msg;
+	packet ACK;
 	int success = 0;
 	int read_fds;
 	struct timeval timeout;
 	//wait for first message
 	printf("waiting for 1st msg\n");
 	recvfrom(sock, &msg, sizeof(msg), 0 /* flags */, src_addr, &src_addr_len);
-	printf("received 1st message\n");
+	printf("received 1st message: %s\n", msg.rdata);
 	if(msg.rseqno == seqno){ // correct message, copy data
 		success = 1;
 		data = msg.rdata;
@@ -47,22 +47,24 @@ int reliable_recvfrom(int seqno, int sock, void *data, int len, int flags, struc
 	else {	//prepare read_fds and timeout value for select()
 	read_fds = 0;
 	read_fds |= (1<<sock);
-	timeout.tv_sec = 0;
-	timeout.tv_usec = 1000;	
+	timeout.tv_sec = 1;
+	timeout.tv_usec = 0;	
 	}
 	while(!success){
 		if(select(32, (fd_set *)&read_fds, NULL, NULL, &timeout) == 0){
 			//timeout! send ACK seqno-1
-		  memcpy(ACK, (char*)&seqno, sizeof(int));
-		  sendto(sock, ACK, strlen(ACK), 0 /* flags */, src_addr, src_addr_len);
-			printf("timeout. sent old ACK %u\n", ACK);
-			/*timeout.tv_sec = 0;
-			timeout.tv_usec = 1000;*/
+		  ACK.rseqno = seqno-1;
+		  sendto(sock, &ACK, sizeof(ACK), 0 /* flags */, src_addr, src_addr_len);
+			printf("timeout. sent old ACK %u\n", ACK.rseqno);
+			read_fds = 0;
+			read_fds |= (1<<sock);
+			timeout.tv_sec = 1;
+			timeout.tv_usec = 0;
 		}
 		else {
 			//receive message, check seqno
 			recvfrom(sock, &msg, sizeof(msg), 0 /* flags */, src_addr, &src_addr_len);
-			printf("addtl attempt, received (%s) with ACK=%u\n", msg.rdata, msg.rseqno);
+			printf("addtl attempt, received (%s) with seq=%u\n", msg.rdata, msg.rseqno);
 			if(msg.rseqno == seqno){
 				//seq number matches, copy data and break out of loop
 				success = 1;
@@ -79,9 +81,9 @@ int reliable_recvfrom(int seqno, int sock, void *data, int len, int flags, struc
 		}
 	}
 	//send ack
-	memcpy(ACK, (char*)&seqno, sizeof(int));
-	sendto(sock, ACK, strlen(ACK), 0 /* flags */, src_addr, src_addr_len); 
-	printf("sent current ACK %u\n", ACK);
+	ACK.rseqno = seqno;
+	sendto(sock, &ACK, sizeof(ACK), 0 /* flags */, src_addr, src_addr_len); 
+	printf("sent current ACK %u\n", ACK.rseqno);
 	return strlen(msg.rdata);
 }
 

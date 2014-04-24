@@ -14,16 +14,16 @@
 #include <sys/select.h>
 #include <sys/time.h>
 
-typedef struct reliableMsg {
+typedef struct packet {
 	int rseqno;
 	char rdata[100];
-} reliableMsg;
+} packet;
 
 int reliable_sendto(int seqno, int sock, void *data, int len, int flags, struct sockaddr *dest_addr, int dest_len)
 {
 	//copy seqno and message into new message struct
-	reliableMsg msg;
-	char ACK[100];
+	packet msg;
+	packet ACK;
 	msg.rseqno = seqno;
 	strcpy(msg.rdata, data);
 	//send message
@@ -33,8 +33,8 @@ int reliable_sendto(int seqno, int sock, void *data, int len, int flags, struct 
 	int read_fds = 0;
 	struct timeval timeout;
 	read_fds |= (1 << sock);
-	timeout.tv_sec = 0;
-	timeout.tv_usec = 1000;
+	timeout.tv_sec = 1;
+	timeout.tv_usec = 0;
 	int success = 0;
 	//wait for ack
 	while(!success){
@@ -42,14 +42,14 @@ int reliable_sendto(int seqno, int sock, void *data, int len, int flags, struct 
 			//timeout! send message again
 			sendto(sock, &msg, sizeof(msg), 0 /* flags */, dest_addr, dest_len);
 			printf("timeout. sent (%s) with seq=%u\n", msg.rdata, msg.rseqno);
-			/*timeout.tv_sec = 0;
-			timeout.tv_usec = 1000;*/
+			timeout.tv_sec = 1;
+			timeout.tv_usec = 0;
 		}
 		else {
 			//receive message
-			recvfrom(sock, ACK, 100, 0 /* flags */, dest_addr, &dest_len);
-			printf("received ACK=%s\n", ACK);
-			if(*ACK == seqno){
+			recvfrom(sock, &ACK, 100, 0 /* flags */, dest_addr, &dest_len);
+			printf("received ACK=%u\n", ACK.rseqno);
+			if(ACK.rseqno == seqno){
 				//ACK number matches, break out of loop
 				success = 1;
 				break;
