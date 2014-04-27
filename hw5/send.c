@@ -21,48 +21,61 @@ typedef struct packet {
 
 int reliable_sendto(int seqno, int sock, void *data, int len, int flags, struct sockaddr *dest_addr, int dest_len)
 {
-	//copy seqno and message into new message struct
+	struct sockaddr_in src_addr;
+	int src_addr_len;
+  src_addr_len = sizeof(src_addr);
+  
 	packet msg;
 	int ACK;
+	
+	//copy data and seqno to new packet
 	msg.rseqno = seqno;
 	strcpy(msg.rdata, data);
-	//send message
+	
+	//send current message
 	sendto(sock, &msg, sizeof(msg), 0 /* flags */, dest_addr, dest_len);
-	printf("sent (%s) with seq=%u\n", msg.rdata, msg.rseqno);
+	//printf("sent (%s) with seq=%u\n", msg.rdata, msg.rseqno);
+	
 	//prepare read_fds and timeout value for select()
 	int read_fds = 0;
 	struct timeval timeout;
 	read_fds |= (1 << sock);
-	timeout.tv_sec = 1;
-	timeout.tv_usec = 0;
+	timeout.tv_sec = 0;
+	timeout.tv_usec = 1000;
+	
 	int success = 0;
 	//wait for ack
 	while(!success){
 		if(select(32, (fd_set *)&read_fds, NULL, NULL, &timeout) == 0){
-			//timeout! send message again
+			//timeout - no ACK! send message again
 			sendto(sock, &msg, sizeof(msg), 0 /* flags */, dest_addr, dest_len);
-			printf("timeout. sent (%s) with seq=%u\n", msg.rdata, msg.rseqno);
-			timeout.tv_sec = 1;
-			timeout.tv_usec = 0;
+			//printf("timeout. sent (%s) with seq=%u\n", msg.rdata, msg.rseqno);
+			read_fds = 0;
+			read_fds |= (1 << sock);
+			timeout.tv_sec = 0;
+			timeout.tv_usec = 1000;
 		}
 		else {
-			//receive message
-			recvfrom(sock, &ACK, 100, 0 /* flags */, dest_addr, &dest_len);
-			printf("received ACK=%u\n", ACK);
+			//receive ACK
+			recvfrom(sock, &ACK, 100, 0 /* flags */, (struct sockaddr *)&src_addr, &src_addr_len);
+			//printf("received ACK=%u, need ACK %u\n", ACK, seqno);
 			if(ACK == seqno){
 				//ACK number matches, break out of loop
+				//printf("received ACK, exit\n");
 				success = 1;
 				break;
 			}
 			else {
 				//wrong ACK, prepare to receive again
-				/*read_fds = 0;
+				//printf("wrong ACK\n");
+				read_fds = 0;
 				read_fds |= (1 << sock);
 				timeout.tv_sec = 0;
-				timeout.tv_usec = 1000;*/
+				timeout.tv_usec = 1000;
 			}
 		}
 	}
+	return 0;
 }
 
 int main(int argc, char *argv[])
@@ -151,6 +164,6 @@ int main(int argc, char *argv[])
 	 ---- */
       reliable_sendto(seqno, s, line, strlen(line)+1, 0 /* flags */, 
 	     (struct sockaddr *)&dest_addr, sizeof(dest_addr));
-		seqno++;
+			seqno++;
     }
 }
