@@ -43,11 +43,11 @@ int reliable_recvfrom(int seqno, int sock, void *data, int len, int flags, struc
 			//printf("accept msg seq %u: %s\n", msg.rseqno, data);
 			ACK = seqno;
 			sendto(sock, &ACK, sizeof(ACK), 0 /* flags */, src_addr, src_addr_len); 
-			printf("sent current ACK %u\n", ACK);
+		//printf("sent current ACK %u\n", ACK);
 		}
 		else { //mismatch. ignore data, send old ACK
 			ACK = msg.rseqno;
-			printf("sending old ACK: %u\n", ACK);
+			//printf("sending old ACK: %u\n", ACK);
 			sendto(sock, &ACK, sizeof(ACK), 0, src_addr, src_addr_len);
 		}
 	}

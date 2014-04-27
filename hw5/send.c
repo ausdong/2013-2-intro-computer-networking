@@ -1,6 +1,7 @@
 /*
-   udp4-s3.c: version 3 of sender
-	 - uses symbolic name for address
+   THIS CODE IS MY OWN WORK, IT WAS WRITTEN WITHOUT CONSULTING
+
+A TUTOR OR CODE WRITTEN BY OTHER STUDENTS - Austin Dong
 */
 
 #include <stdio.h>

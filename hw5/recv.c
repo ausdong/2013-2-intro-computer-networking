@@ -1,5 +1,7 @@
 /*
-   udp4-r2.c: bind to wildcard IP address
+   THIS CODE IS MY OWN WORK, IT WAS WRITTEN WITHOUT CONSULTING
+
+A TUTOR OR CODE WRITTEN BY OTHER STUDENTS - Austin Dong
 */
 
 #include <stdio.h>
